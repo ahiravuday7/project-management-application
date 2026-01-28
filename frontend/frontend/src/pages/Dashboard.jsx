@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [columnName, setColumnName] = useState("");
 
+  const [users, setUsers] = useState([]);
+
   // Toast Notification logic
   const [toast, setToast] = useState({
     show: false,
@@ -176,7 +178,7 @@ const Dashboard = () => {
       const res = await api.post("/tasks", {
         title: taskTitle,
         description: taskDescription,
-        assignedTo: assignedTo ? assignedTo._id : null,
+        assignedTo: assignedTo || null, // assignedTo will now be userId string
         boardId: selectedBoard._id,
         columnId: activeColumnId,
       });
@@ -247,6 +249,19 @@ const Dashboard = () => {
       });
     }
   };
+
+  // Fetch users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await api.get("/users");
+        setUsers(res.data);
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   return (
     <div className="container-fluid">
@@ -364,11 +379,19 @@ const Dashboard = () => {
                                           </small>
                                           <br />
                                           <small className="text-secondary">
-                                            {task.assignedTo?.name ||
-                                              "Unassigned"}
-                                            <br />
-                                            {task.assignedTo?.email ||
-                                              "Unassigned"}
+                                            {task.assignedTo?.name ? (
+                                              <>
+                                                {task.assignedTo.name}
+                                                {task.assignedTo.email && (
+                                                  <>
+                                                    <br />
+                                                    {task.assignedTo.email}
+                                                  </>
+                                                )}
+                                              </>
+                                            ) : (
+                                              "Unassigned"
+                                            )}
                                           </small>
                                         </div>
                                       </div>
@@ -511,12 +534,18 @@ const Dashboard = () => {
                   onChange={(e) => settaskDescription(e.target.value)}
                 />
 
-                <input
-                  className="form-control"
-                  placeholder="Assignee (email or name)"
+                <select
+                  className="form-select"
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                />
+                >
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="modal-footer">
                 <button

@@ -25,6 +25,8 @@ const Boards = () => {
   const [assignedTo, setAssignedTo] = useState("");
   const [activeColumnId, setActiveColumnId] = useState(null);
 
+  const [users, setUsers] = useState([]);
+
   // Toast
   const [toast, setToast] = useState({
     show: false,
@@ -212,6 +214,19 @@ const Boards = () => {
     }
   };
 
+  // Fetch users for assignment
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await api.get("/users");
+        setUsers(res.data);
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   return (
     <div style={{ backgroundColor: "#f1f3f5", minHeight: "100vh" }}>
       <div className="container py-4">
@@ -331,11 +346,23 @@ const Boards = () => {
                                                 </small>
                                                 <br />
                                                 <small className="text-secondary">
-                                                  {task.assignedTo?.name ||
-                                                    task.assignedTo ||
-                                                    "Unassigned"}
-                                                  <br />
-                                                  {task.assignedTo?.email || ""}
+                                                  {task.assignedTo?.name ? (
+                                                    <>
+                                                      {task.assignedTo.name}
+                                                      {task.assignedTo
+                                                        .email && (
+                                                        <>
+                                                          <br />
+                                                          {
+                                                            task.assignedTo
+                                                              .email
+                                                          }
+                                                        </>
+                                                      )}
+                                                    </>
+                                                  ) : (
+                                                    "Unassigned"
+                                                  )}
                                                 </small>
                                               </div>
                                             </div>
@@ -431,12 +458,19 @@ const Boards = () => {
                   onChange={(e) => setTaskDescription(e.target.value)}
                 />
 
-                <input
-                  className="form-control"
-                  placeholder="Assignee (email or name)"
+                <select
+                  className="form-select"
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                />
+                >
+                  <option value="">Unassigned</option>
+
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="modal-footer">

@@ -2,7 +2,10 @@ const Board = require("../models/Board");
 const Column = require("../models/Column");
 const Task = require("../models/Task");
 
-// Create Board
+/**
+ * Create Board
+ * Admin, Manager
+ */
 exports.createBoard = async (req, res) => {
   try {
     const board = await Board.create({
@@ -11,19 +14,37 @@ exports.createBoard = async (req, res) => {
       createdBy: req.user.id,
       members: [req.user.id],
     });
-    console.log("USER: ", req.user);
+
     res.status(201).json(board);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get My Board
+/**
+ * Get Boards
+ * Admin, Manager → all boards
+ * Member → only boards having tasks assigned to him
+ */
 exports.getBoards = async (req, res) => {
   try {
-    const boards = await Board.find({
-      members: req.user.id,
-    }).populate("createdBy", "name email");
+    const { role, id: userId } = req.user;
+
+    // ✅ Admin & Manager → see all boards
+    if (role === "Admin" || role === "Manager") {
+      const boards = await Board.find({}).populate("createdBy", "name email");
+      return res.json(boards);
+    }
+
+    // ✅ Member → boards where tasks are assigned to him
+    const boardIds = await Task.distinct("boardId", {
+      assignedTo: userId,
+    });
+
+    const boards = await Board.find({ _id: { $in: boardIds } }).populate(
+      "createdBy",
+      "name email",
+    );
 
     res.json(boards);
   } catch (error) {
@@ -31,7 +52,10 @@ exports.getBoards = async (req, res) => {
   }
 };
 
-// Update Board (rename / update description)
+/**
+ * Update Board
+ * Admin, Manager
+ */
 exports.updateBoard = async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,11 +63,10 @@ exports.updateBoard = async (req, res) => {
     const board = await Board.findById(id);
     if (!board) return res.status(404).json({ message: "Board not found" });
 
-    // must be member
-    const isMember = (board.members || []).some(
-      (m) => String(m) === String(req.user.id),
-    );
-    if (!isMember) return res.status(403).json({ message: "Access denied" });
+    // ✅ Role check
+    if (!["Admin", "Manager"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
 
     board.name = req.body.name ?? board.name;
     board.description = req.body.description ?? board.description;
@@ -55,19 +78,21 @@ exports.updateBoard = async (req, res) => {
   }
 };
 
-//  Delete Board + cascade delete columns + tasks
+/**
+ * Delete Board
+ * Admin only
+ * Cascade delete columns & tasks
+ */
 exports.deleteBoard = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Only Admin can delete board" });
+    }
+
     const board = await Board.findById(id);
     if (!board) return res.status(404).json({ message: "Board not found" });
-
-    // must be member
-    const isMember = (board.members || []).some(
-      (m) => String(m) === String(req.user.id),
-    );
-    if (!isMember) return res.status(403).json({ message: "Access denied" });
 
     await Promise.all([
       Task.deleteMany({ boardId: id }),
@@ -76,7 +101,7 @@ exports.deleteBoard = async (req, res) => {
 
     await Board.findByIdAndDelete(id);
 
-    res.json({ message: "Board deleted" });
+    res.json({ message: "Board deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

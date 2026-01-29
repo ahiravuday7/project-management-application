@@ -1,8 +1,31 @@
 const Task = require("../models/Task");
+const Board = require("../models/Board");
 const { getIO } = require("../socket/socket");
 
-// ✅ Create Task
+/**
+ * Helper: check board access
+ */
+async function canAccessBoard(boardId, user) {
+  if (user.role === "Admin" || user.role === "Manager") return true;
+
+  // Member: must have task assigned in this board
+  const count = await Task.countDocuments({
+    boardId,
+    assignedTo: user.id,
+  });
+
+  return count > 0;
+}
+
+/**
+ * Create Task
+ * Admin, Manager
+ */
 exports.createTask = async (req, res) => {
+  if (!["Admin", "Manager"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const { title, description, boardId, columnId, assignedTo } = req.body;
 
   if (!title || !boardId || !columnId) {
@@ -16,7 +39,7 @@ exports.createTask = async (req, res) => {
       boardId,
       columnId,
       assignedTo: assignedTo || null,
-      createdBy: req.user?.id,
+      createdBy: req.user.id,
     });
 
     const populatedTask = await task.populate("assignedTo", "name email");
@@ -30,10 +53,27 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// ✅ Get Tasks by Board
+/**
+ * Get Tasks by Board
+ * Admin, Manager → all tasks
+ * Member → only assigned tasks
+ */
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ boardId: req.params.boardId })
+    const { boardId } = req.params;
+
+    const hasAccess = await canAccessBoard(boardId, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    let query = { boardId };
+
+    if (req.user.role === "Member") {
+      query.assignedTo = req.user.id;
+    }
+
+    const tasks = await Task.find(query)
       .populate("assignedTo", "name email")
       .sort("createdAt");
 
@@ -43,8 +83,15 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-// ✅ Update Task (edit OR move column)
+/**
+ * Update Task
+ * Admin, Manager
+ */
 exports.updateTask = async (req, res) => {
+  if (!["Admin", "Manager"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   try {
     const existing = await Task.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Task not found" });
@@ -57,7 +104,6 @@ exports.updateTask = async (req, res) => {
 
     const io = getIO();
 
-    // ✅ If column changed, emit taskMoved
     if (req.body.columnId && String(req.body.columnId) !== prevColumnId) {
       io.to(task.boardId.toString()).emit("taskMoved", {
         taskId: task._id,
@@ -66,7 +112,6 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    // ✅ Always emit taskUpdated (for title/desc/assignedTo edits)
     io.to(task.boardId.toString()).emit("taskUpdated", task);
 
     res.json(task);
@@ -75,8 +120,15 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// ✅ Delete Task
+/**
+ * Delete Task
+ * Admin, Manager
+ */
 exports.deleteTask = async (req, res) => {
+  if (!["Admin", "Manager"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -95,8 +147,15 @@ exports.deleteTask = async (req, res) => {
   }
 };
 
-// ✅ Start Timer
+/**
+ * Start Timer
+ * Admin, Manager
+ */
 exports.startTimer = async (req, res) => {
+  if (!["Admin", "Manager"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const task = await Task.findById(req.params.id);
 
   if (!task.timer.isRunning) {
@@ -108,8 +167,15 @@ exports.startTimer = async (req, res) => {
   res.json(task);
 };
 
-// ✅ Stop Timer
+/**
+ * Stop Timer
+ * Admin, Manager
+ */
 exports.stopTimer = async (req, res) => {
+  if (!["Admin", "Manager"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const task = await Task.findById(req.params.id);
 
   if (task.timer.isRunning) {

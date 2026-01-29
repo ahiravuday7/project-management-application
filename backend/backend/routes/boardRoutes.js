@@ -24,6 +24,6 @@ router.get("/", protect, getBoards);
 router.put("/:id", protect, authorizeRoles("Admin", "Manager"), updateBoard);
 
 //  DELETE: /api/boards/:id
-router.delete("/:id", protect, authorizeRoles("Admin", "Manager"), deleteBoard);
+router.delete("/:id", protect, authorizeRoles("Admin"), deleteBoard);
 
 module.exports = router;

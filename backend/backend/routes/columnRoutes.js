@@ -18,7 +18,7 @@ router.post("/", protect, authorizeRoles("Admin", "Manager"), createColumn);
 // All Roles can get columns
 router.get("/:boardId", protect, getColumns);
 
-router.put("/:id", updateColumn);
-router.delete("/:id", deleteColumn);
+router.put("/:id", authorizeRoles("Admin", "Manager"), updateColumn);
+router.delete("/:id", authorizeRoles("Admin"), deleteColumn);
 
 module.exports = router;

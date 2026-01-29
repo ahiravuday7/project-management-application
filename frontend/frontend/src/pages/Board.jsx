@@ -3,6 +3,7 @@ import api from "../api/axios";
 import socket from "../socket";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import "../pages/board.css";
+import TaskModal from "../components/TaskModal";
 
 const Boards = () => {
   const [boards, setBoards] = useState([]);
@@ -50,6 +51,19 @@ const Boards = () => {
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskDescription, setEditTaskDescription] = useState("");
   const [editTaskAssignedTo, setEditTaskAssignedTo] = useState("");
+
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+
+  const openTask = (task) => {
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  const closeTask = () => {
+    setIsTaskModalOpen(false);
+    setSelectedTask(null);
+  };
 
   // Toast
   const [toast, setToast] = useState({
@@ -647,6 +661,8 @@ const Boards = () => {
                                               {...provided.draggableProps}
                                               {...provided.dragHandleProps}
                                               className="card mb-2 shadow-sm"
+                                              onClick={() => openTask(task)}
+                                              style={{ cursor: "pointer" }}
                                             >
                                               <div className="card-body p-2">
                                                 <div className="d-flex justify-content-between align-items-start">
@@ -1036,6 +1052,14 @@ const Boards = () => {
           </div>
         </div>
       )}
+
+      {/* Task Details Popup */}
+      <TaskModal
+        open={isTaskModalOpen}
+        task={selectedTask}
+        onClose={closeTask}
+      />
+
       {/* Toast */}
       {toast.show && (
         <div

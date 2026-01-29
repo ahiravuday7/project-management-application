@@ -1,8 +1,7 @@
 const Task = require("../models/Task");
 const { getIO } = require("../socket/socket");
 
-// Create Task
-// Post:
+// ✅ Create Task
 exports.createTask = async (req, res) => {
   const { title, description, boardId, columnId, assignedTo } = req.body;
 
@@ -17,13 +16,11 @@ exports.createTask = async (req, res) => {
       boardId,
       columnId,
       assignedTo: assignedTo || null,
-      createdBy: req.user.id,
+      createdBy: req.user?.id,
     });
 
-    // Populate before sending
     const populatedTask = await task.populate("assignedTo", "name email");
 
-    // Socket EMIT
     const io = getIO();
     io.to(boardId.toString()).emit("taskCreated", populatedTask);
 
@@ -33,12 +30,10 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// Get Task by Board
+// ✅ Get Tasks by Board
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({
-      boardId: req.params.boardId,
-    })
+    const tasks = await Task.find({ boardId: req.params.boardId })
       .populate("assignedTo", "name email")
       .sort("createdAt");
 
@@ -48,14 +43,30 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-// Update the task (move, assign, edit)
+// ✅ Update Task (edit OR move column)
 exports.updateTask = async (req, res) => {
   try {
+    const existing = await Task.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Task not found" });
+
+    const prevColumnId = String(existing.columnId);
+
     const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-    });
+    }).populate("assignedTo", "name email");
 
     const io = getIO();
+
+    // ✅ If column changed, emit taskMoved
+    if (req.body.columnId && String(req.body.columnId) !== prevColumnId) {
+      io.to(task.boardId.toString()).emit("taskMoved", {
+        taskId: task._id,
+        columnId: task.columnId,
+        boardId: task.boardId,
+      });
+    }
+
+    // ✅ Always emit taskUpdated (for title/desc/assignedTo edits)
     io.to(task.boardId.toString()).emit("taskUpdated", task);
 
     res.json(task);
@@ -64,21 +75,27 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// Delete Task
+// ✅ Delete Task
 exports.deleteTask = async (req, res) => {
   try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
     await Task.findByIdAndDelete(req.params.id);
 
     const io = getIO();
-    io.to(task.boardId.toString()).emit("taskDeleted", task._id);
+    io.to(task.boardId.toString()).emit("taskDeleted", {
+      taskId: task._id,
+      boardId: task.boardId,
+    });
 
-    res.json({ message: "Task Deleted" });
+    res.json({ message: "Task deleted successfully", taskId: task._id });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Start Timer
+// ✅ Start Timer
 exports.startTimer = async (req, res) => {
   const task = await Task.findById(req.params.id);
 
@@ -91,7 +108,7 @@ exports.startTimer = async (req, res) => {
   res.json(task);
 };
 
-// Stop Timer
+// ✅ Stop Timer
 exports.stopTimer = async (req, res) => {
   const task = await Task.findById(req.params.id);
 
@@ -102,5 +119,6 @@ exports.stopTimer = async (req, res) => {
     task.timer.startedAt = null;
     await task.save();
   }
+
   res.json(task);
 };

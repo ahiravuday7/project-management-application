@@ -1,0 +1,11 @@
+/* Board action icons */
+.bi-action {
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+
+.bi-action:hover {
+  opacity: 0.75;
+  transform: scale(1.05);
+}

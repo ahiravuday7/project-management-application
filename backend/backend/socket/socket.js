@@ -18,6 +18,13 @@ const initSocket = (server) => {
       console.log(`User joined board ${boardId}`);
     });
 
+    // ✅ Join per-user room for notifications
+    socket.on("joinUser", (userId) => {
+      if (!userId) return;
+      socket.join(`user:${userId}`);
+      console.log(`User ${socket.id} joined room user:${userId}`);
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected: ", socket.id);
     });

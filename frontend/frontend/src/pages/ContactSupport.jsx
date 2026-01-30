@@ -20,7 +20,12 @@ const ContactSupport = () => {
       alert("Your message has been sent to support!");
       setForm({ name: "", email: "", message: "" });
     } catch (error) {
-      alert("Failed to send support request");
+      console.log(
+        "Support error:",
+        error?.response?.status,
+        error?.response?.data || error.message,
+      );
+      alert(error?.response?.data?.message || "Failed to send support request");
     }
   };
 

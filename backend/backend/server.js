@@ -9,7 +9,7 @@ const taskRoutes = require("./routes/taskRoutes");
 const { initSocket } = require("./socket/socket");
 const userRoutes = require("./routes/userRoutes");
 const supportRoutes = require("./routes/supportRoutes");
-
+const notificationRoutes = require("./routes/notificationRoutes");
 dotenv.config();
 
 const connectDB = require("./config/db");
@@ -32,7 +32,7 @@ app.use("/api/columns", columnRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/support", supportRoutes);
-
+app.use("/api/notifications", notificationRoutes);
 // Test route
 app.get("/", (req, res) => {
   res.send("Project Management API Running");

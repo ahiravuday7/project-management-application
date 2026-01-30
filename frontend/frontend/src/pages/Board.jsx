@@ -55,6 +55,8 @@ const Boards = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
+  const activeBoard = boards.find((b) => b._id === expandedBoardId) || null;
+
   const openTask = (task) => {
     setSelectedTask(task);
     setIsTaskModalOpen(true);
@@ -1057,6 +1059,8 @@ const Boards = () => {
       <TaskModal
         open={isTaskModalOpen}
         task={selectedTask}
+        columns={columns}
+        board={activeBoard}
         onClose={closeTask}
       />
 

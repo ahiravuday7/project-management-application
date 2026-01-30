@@ -15,6 +15,7 @@ import ApiReference from "./pages/ApiReference";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
 import ContactSupport from "./pages/ContactSupport";
+import MyTasks from "./pages/MyTasks";
 
 function App() {
   return (
@@ -38,7 +39,7 @@ function App() {
               path="/tasks"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <MyTasks />
                 </ProtectedRoute>
               }
             />

@@ -1,9 +1,39 @@
 import React from "react";
 
-export default function TaskModal({ open, task, onClose }) {
+export default function TaskModal({
+  open,
+  task,
+  onClose,
+  columns = [],
+  board = null,
+}) {
   if (!open || !task) return null;
 
   const stop = (e) => e.stopPropagation();
+
+  // ✅ Status/Column name resolver:
+  // - MyTasks returns columnId as object -> { _id, name }
+  // - Board returns columnId as string -> "6979..."
+  const statusValue = (() => {
+    if (task?.columnId && typeof task.columnId === "object") {
+      return task.columnId?.name || "—";
+    }
+    if (typeof task?.columnId === "string") {
+      const col = columns.find((c) => c?._id === task.columnId);
+      return col?.name || "—";
+    }
+    return "—";
+  })();
+
+  // ✅ Board name resolver:
+  // - Some APIs return boardId populated, some return only boardId string
+  // - On Board page we already know the current board -> pass as prop
+  const boardValue = (() => {
+    if (task?.boardId && typeof task.boardId === "object") {
+      return task.boardId?.name || "—";
+    }
+    return board?.name || "—";
+  })();
 
   return (
     <div style={styles.backdrop} onClick={onClose}>
@@ -34,7 +64,12 @@ export default function TaskModal({ open, task, onClose }) {
 
           <div style={styles.row}>
             <div style={styles.label}>Status / Column</div>
-            <div style={styles.value}>{task.columnId || "—"}</div>
+            <div style={styles.value}>{statusValue}</div>
+          </div>
+
+          <div style={styles.row}>
+            <div style={styles.label}>Board</div>
+            <div style={styles.value}>{boardValue}</div>
           </div>
 
           <div style={styles.row}>

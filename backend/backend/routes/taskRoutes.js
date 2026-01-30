@@ -8,6 +8,7 @@ const {
   deleteTask,
   startTimer,
   stopTimer,
+  getMyTasks,
 } = require("../controllers/taskController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -16,6 +17,9 @@ const router = express.Router();
 
 // Create Task
 router.post("/", protect, authorizeRoles("Admin", "Manager"), createTask);
+
+// Get My Tasks
+router.get("/my", protect, getMyTasks);
 
 // Get Tasks
 router.get("/:boardId", protect, getTasks);

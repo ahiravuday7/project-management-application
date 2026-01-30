@@ -188,3 +188,16 @@ exports.stopTimer = async (req, res) => {
 
   res.json(task);
 };
+exports.getMyTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.user.id })
+      .populate("assignedTo", "name email")
+      .populate("boardId", "name description")
+      .populate("columnId", "name")
+      .sort("-updatedAt");
+
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
